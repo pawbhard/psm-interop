@@ -32,7 +32,7 @@ _XdsTestClient = xds_k8s_testcase.XdsTestClient
 _KubernetesServerRunner = k8s_xds_server_runner.KubernetesServerRunner
 _Lang = skips.Lang
 
-_QPS = 100
+_QPS = 500
 _INITIAL_UNARY_MAX_REQUESTS = 500
 _INITIAL_EMPTY_MAX_REQUESTS = 1000
 _UPDATED_UNARY_MAX_REQUESTS = 800
