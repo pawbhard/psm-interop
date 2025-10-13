@@ -90,9 +90,23 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
         with self.subTest("07_start_test_client"):
             test_client = self.startTestClient(
                 test_servers[0],
-                rpc="EmptyCall",
-                metadata="EmptyCall:%s:123" % _TEST_AFFINITY_METADATA_KEY,
+                qps=0,
             )
+
+        with self.subTest("08_wait_for_endpoints_and_start_rpcs"):
+            self.wait_for_healthy_endpoints(test_client, _REPLICA_COUNT)
+            test_client.update_config.configure(
+                rpc_types=[grpc_testing.RPC_TYPE_EMPTY_CALL],
+                metadata=[
+                    (
+                        grpc_testing.RPC_TYPE_EMPTY_CALL,
+                        _TEST_AFFINITY_METADATA_KEY,
+                        "123",
+                    )
+                ],
+                qps=25,
+            )
+
             # Validate the number of received endpoints and affinity configs.
             parsed = test_client.csds.fetch_client_status_parsed(
                 log_level=logging.INFO
