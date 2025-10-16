@@ -96,7 +96,9 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             )
             self.assertIsNotNone(parsed)
             logging.info("Client received CSDS response: %s", parsed)
-            self.assertEqual(parsed.cds[0]["lbPolicy"], "ROUND_ROBIN")
+            self.assertEqual(
+                parsed.cds[0].get("lbPolicy", "ROUND_ROBIN"), "ROUND_ROBIN"
+            )
 
         with self.subTest("08_wait_for_all_endpoints_healthy"):
             self.assertHealthyEndpointsCount(test_client, _REPLICA_COUNT)
@@ -116,7 +118,7 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
                         log_level=logging.INFO
                     )
                     self.assertIsNotNone(parsed)
-                    if parsed.cds[0]["lbPolicy"] == "RING_HASH":
+                    if parsed.cds[0].get("lbPolicy") == "RING_HASH":
                         break
                     logging.info(
                         (
