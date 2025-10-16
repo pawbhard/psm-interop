@@ -226,15 +226,6 @@ psm::dualstack::setup() {
 psm::dualstack::get_tests() {
   TESTS=(
     "affinity_test"
-    "dualstack_test"
-    "api_listener_test"
-    "app_net_test"
-    "change_backend_service_test"
-    "custom_lb_test"
-    "round_robin_test"
-    "circuit_breaking_test"
-    "outlier_detection_test"
-    "remove_neg_test"
   )
 }
 

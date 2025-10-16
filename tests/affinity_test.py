@@ -104,9 +104,15 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             self.assertHealthyEndpointsCount(test_client, _REPLICA_COUNT)
 
         with self.subTest("09_switch_to_ring_hash"):
-            self.td.patch_backend_service(
-                affinity_header=_TEST_AFFINITY_METADATA_KEY,
-                locality_lb_policy="RING_HASH",
+            self.td.compute.patch_backend_service(
+                self.td.backend_service,
+                {
+                    "sessionAffinity": "HEADER_FIELD",
+                    "localityLbPolicy": "RING_HASH",
+                    "consistentHash": {
+                        "httpHeaderName": _TEST_AFFINITY_METADATA_KEY,
+                    },
+                },
             )
 
         with self.subTest("10_wait_for_ring_hash_config_propagation"):
@@ -136,9 +142,15 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
                 logging.info("Client received CSDS response: %s", parsed)
 
         with self.subTest("11_update_client_with_affinity_header"):
-            test_client.update(
-                rpc="EmptyCall",
-                metadata=f"EmptyCall:{_TEST_AFFINITY_METADATA_KEY}:123",
+            test_client.update_config.configure(
+                rpc_types=["EMPTY_CALL"],
+                metadata=[
+                    grpc_testing.ClientConfigureRequest.Metadata(
+                        type="EMPTY_CALL",
+                        key=_TEST_AFFINITY_METADATA_KEY,
+                        value="123",
+                    )
+                ],
             )
 
         with self.subTest("12_test_client_xds_config_exists"):
