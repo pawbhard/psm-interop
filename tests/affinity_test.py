@@ -66,9 +66,7 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             self.td.create_health_check()
 
         with self.subTest("01_create_backend_services"):
-            self.td.create_backend_service(
-                affinity_header=_TEST_AFFINITY_METADATA_KEY
-            )
+            self.td.create_backend_service()
 
         with self.subTest("02_create_url_map"):
             self.td.create_url_map(self.server_xds_host, self.server_xds_port)
@@ -91,7 +89,6 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             test_client = self.startTestClient(
                 test_servers[0],
                 rpc="EmptyCall",
-                metadata="EmptyCall:%s:123" % _TEST_AFFINITY_METADATA_KEY,
             )
             # Validate the number of received endpoints and affinity configs.
             parsed = test_client.csds.fetch_client_status_parsed(
@@ -99,22 +96,56 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             )
             self.assertIsNotNone(parsed)
             logging.info("Client received CSDS response: %s", parsed)
-            self.assertHealthyEndpointsCount(test_client, _REPLICA_COUNT)
-            self.assertEqual(
-                parsed.rds["virtualHosts"][0]["routes"][0]["route"][
-                    "hashPolicy"
-                ][0]["header"]["headerName"],
-                _TEST_AFFINITY_METADATA_KEY,
-            )
-            self.assertEqual(parsed.cds[0]["lbPolicy"], "RING_HASH")
+            self.assertEqual(parsed.cds[0]["lbPolicy"], "ROUND_ROBIN")
 
-        with self.subTest("08_test_client_xds_config_exists"):
+        with self.subTest("08_wait_for_all_endpoints_healthy"):
+            self.assertHealthyEndpointsCount(test_client, _REPLICA_COUNT)
+
+        with self.subTest("09_switch_to_ring_hash"):
+            self.td.patch_backend_service(
+                affinity_header=_TEST_AFFINITY_METADATA_KEY,
+                locality_lb_policy="RING_HASH",
+            )
+
+        with self.subTest("10_wait_for_ring_hash_config_propagation"):
+            deadline = time.time() + _TD_PROPAGATE_TIMEOUT
+            parsed = None
+            try:
+                while time.time() < deadline:
+                    parsed = test_client.csds.fetch_client_status_parsed(
+                        log_level=logging.INFO
+                    )
+                    self.assertIsNotNone(parsed)
+                    if parsed.cds[0]["lbPolicy"] == "RING_HASH":
+                        break
+                    logging.info(
+                        (
+                            "CSDS got unexpected lbPolicy, will retry after %d"
+                            " seconds"
+                        ),
+                        _TD_PROPAGATE_CHECK_INTERVAL_SEC,
+                    )
+                    time.sleep(_TD_PROPAGATE_CHECK_INTERVAL_SEC)
+                else:
+                    self.fail(
+                        "ring_hash config did not propagate after 600 seconds"
+                    )
+            finally:
+                logging.info("Client received CSDS response: %s", parsed)
+
+        with self.subTest("11_update_client_with_affinity_header"):
+            test_client.update(
+                rpc="EmptyCall",
+                metadata=f"EmptyCall:{_TEST_AFFINITY_METADATA_KEY}:123",
+            )
+
+        with self.subTest("12_test_client_xds_config_exists"):
             self.assertXdsConfigExists(test_client)
 
-        with self.subTest("09_test_server_received_rpcs_from_test_client"):
+        with self.subTest("13_test_server_received_rpcs_from_test_client"):
             self.assertSuccessfulRpcs(test_client)
 
-        with self.subTest("10_first_100_affinity_rpcs_pick_same_backend"):
+        with self.subTest("14_first_100_affinity_rpcs_pick_same_backend"):
             rpc_stats = self.getClientRpcStats(test_client, _RPC_COUNT)
             rpc_distribution = grpc_testing.RpcDistributionStats.from_message(
                 rpc_stats
@@ -143,12 +174,12 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
                 rpc_distribution.raw["rpcsByPeer"].keys()
             )[0]
 
-        with self.subTest("11_turn_down_server_in_use"):
+        with self.subTest("15_turn_down_server_in_use"):
             for server in test_servers:
                 if server.hostname == first_backend_inuse:
                     server.set_not_serving()
 
-        with self.subTest("12_wait_for_unhealth_status_propagation"):
+        with self.subTest("16_wait_for_unhealth_status_propagation"):
             deadline = time.time() + _TD_PROPAGATE_TIMEOUT
             parsed = None
             try:
@@ -174,7 +205,7 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             finally:
                 logging.info("Client received CSDS response: %s", parsed)
 
-        with self.subTest("12_next_100_affinity_rpcs_pick_different_backend"):
+        with self.subTest("17_next_100_affinity_rpcs_pick_different_backend"):
             rpc_stats = self.getClientRpcStats(test_client, _RPC_COUNT)
             rpc_distribution = grpc_testing.RpcDistributionStats.from_message(
                 rpc_stats
