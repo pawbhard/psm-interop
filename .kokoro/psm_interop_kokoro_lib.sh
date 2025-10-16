@@ -225,8 +225,8 @@ psm::dualstack::setup() {
 #######################################
 psm::dualstack::get_tests() {
   TESTS=(
-    "dualstack_test"
     "affinity_test"
+    "dualstack_test"
     "api_listener_test"
     "app_net_test"
     "change_backend_service_test"
