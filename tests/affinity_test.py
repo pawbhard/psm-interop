@@ -145,10 +145,10 @@ class AffinityTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
             test_client.update_config.configure(
                 rpc_types=["EMPTY_CALL"],
                 metadata=[
-                    grpc_testing.ClientConfigureRequest.Metadata(
-                        type="EMPTY_CALL",
-                        key=_TEST_AFFINITY_METADATA_KEY,
-                        value="123",
+                    (
+                        grpc_testing.RPC_TYPE_EMPTY_CALL,
+                        _TEST_AFFINITY_METADATA_KEY,
+                        "123",
                     )
                 ],
             )
