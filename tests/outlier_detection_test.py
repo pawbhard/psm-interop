@@ -96,6 +96,7 @@ class OutlierDetectionTest(xds_k8s_testcase.RegularXdsKubernetesTestCase):
                 outlier_detection={
                     "interval": {"seconds": 2, "nanos": 0},
                     "successRateRequestVolume": 20,
+                    "maxEjectionPercent":0
                 }
             )
 
