@@ -26,7 +26,6 @@ from typing import Any, Callable, List, Optional, Tuple, Type
 
 import tenacity
 from tenacity import _utils as tenacity_utils
-from tenacity import compat as tenacity_compat
 from tenacity import stop
 from tenacity import wait
 from tenacity.retry import retry_base
@@ -235,9 +234,7 @@ def _before_sleep_log(logger, log_level, exc_info=False):
             verb, value = "raised", "%s: %s" % (type(ex).__name__, ex)
 
             if exc_info:
-                local_exc_info = tenacity_compat.get_exc_info_from_future(
-                    retry_state.outcome
-                )
+                local_exc_info = ex
             else:
                 local_exc_info = False
         else:

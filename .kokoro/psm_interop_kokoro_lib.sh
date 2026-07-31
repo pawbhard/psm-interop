@@ -33,7 +33,7 @@ readonly TEST_DRIVER_PATH=""
 readonly TEST_DRIVER_PROTOS_PATH="protos/grpc/testing"
 
 # --- Injectable constants ---
-readonly PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
+readonly PYTHON_VERSION="${PYTHON_VERSION:-3.11}"
 
 # Test driver
 readonly TEST_DRIVER_REPO_OWNER="${TEST_DRIVER_REPO_OWNER:-grpc}"
@@ -1195,6 +1195,9 @@ test_driver_get_source() {
 #   Writes the list of installed modules to stdout
 #######################################
 test_driver_pip_install() {
+  psm::tools::log "uv version:"
+  uv --version
+  uv run --python "${PYTHON_VERSION}" python --version
   psm::tools::log "Install python dependencies"
   cd "${TEST_DRIVER_FULL_DIR}"
 
@@ -1205,21 +1208,21 @@ test_driver_pip_install() {
       psm::tools::log "Found python virtual environment directory: ${venv_dir}"
     else
       psm::tools::log "Creating python virtual environment: ${venv_dir}"
-      "python${PYTHON_VERSION}" -m venv "${venv_dir}" --upgrade-deps
+      uv venv --python "${PYTHON_VERSION}" --seed "${venv_dir}"
     fi
     # Intentional: No need to check python venv activate script.
     # shellcheck source=/dev/null
     source "${venv_dir}/bin/activate"
   fi
 
-  psm::tools::log "Installing Python packages with pip, see install-pip.log"
+  psm::tools::log "Installing Python packages with uv pip, see install-pip.log"
   psm::driver::pip_install &>> "${BUILD_LOGS_ROOT}/install-pip.log"
 }
 
 psm::driver::pip_install() {
-  psm::tools::run_verbose python3 -m pip install -r requirements.lock
+  psm::tools::run_verbose uv pip install -r requirements.lock
   echo
-  psm::tools::run_verbose python3 -m pip list
+  psm::tools::run_verbose uv pip list
 }
 
 #######################################
@@ -1246,7 +1249,7 @@ test_driver_compile_protos() {
   )
   psm::tools::log "Generate python code from grpc.testing protos: ${protos[*]}"
   cd "${TEST_DRIVER_REPO_DIR}"
-  python3 -m grpc_tools.protoc \
+  python -m grpc_tools.protoc \
     --proto_path=. \
     --python_out="${TEST_DRIVER_FULL_DIR}" \
     --grpc_python_out="${TEST_DRIVER_FULL_DIR}" \
@@ -1289,8 +1292,9 @@ test_driver_install() {
 kokoro_print_version() {
   psm::tools::log "Kokoro Ubuntu version:"
   run_ignore_exit_code lsb_release -a
-  run_ignore_exit_code "python${PYTHON_VERSION}" --version
-  run_ignore_exit_code "python${PYTHON_VERSION}" -m pip --version
+  psm::tools::log "This is the System Python version and may be different from the actual running version"
+  run_ignore_exit_code python3 --version
+  run_ignore_exit_code python3 -m pip --version
 }
 
 #######################################
@@ -1360,11 +1364,15 @@ kokoro_install_dependencies() {
   sudo DEBIAN_FRONTEND=noninteractive apt-get -qq remove needrestart
   sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
   sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install --auto-remove \
-    "python${PYTHON_VERSION}-venv" \
     google-cloud-sdk-gke-gcloud-auth-plugin \
     kubectl \
     parallel
   sudo rm -rf /var/lib/apt/lists
+  sudo python3 -m pip install uv
+  uv python install "${PYTHON_VERSION}"
+  psm::tools::log "uv version:"
+  uv --version
+  uv run --python "${PYTHON_VERSION}" python --version
 }
 
 #######################################
