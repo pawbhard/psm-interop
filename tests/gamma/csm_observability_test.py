@@ -174,9 +174,7 @@ class CsmObservabilityTest(xds_gamma_testcase.GammaXdsKubernetesTestCase):
 
     @staticmethod
     def is_supported(config: skips.TestConfig) -> bool:
-        # When re-enabling, for Cpp, use minimum version as v1.62.x
-        # For Go, Java and Python use v1.65.x
-        return False
+        return config.client_lang in _Lang.CPP | _Lang.GO | _Lang.JAVA | _Lang.PYTHON
 
     @classmethod
     def setUpClass(cls):
