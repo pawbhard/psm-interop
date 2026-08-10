@@ -850,7 +850,11 @@ class KubernetesNamespace:  # pylint: disable=too-many-public-methods
             timeout=timeout,
             check_result=lambda resource: resource.metadata is not None
             and resource.metadata.annotations is not None
-            and self.MESH_ANNOTATION in resource.metadata.annotations,
+            and (
+                self.MESH_ANNOTATION in resource.metadata.annotations.to_dict()
+                if hasattr(resource.metadata.annotations, "to_dict")
+                else self.MESH_ANNOTATION in resource.metadata.annotations
+            ),
         )
         try:
             retryer(self.get_gamma_route, name, kind=kind)
