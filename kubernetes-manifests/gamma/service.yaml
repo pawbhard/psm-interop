@@ -11,7 +11,9 @@ spec:
   selector:
     app: ${app_label}
   ports:
-  - port: ${test_port}
+  - name: grpc
+    port: ${test_port}
     protocol: TCP
+    appProtocol: grpc
     targetPort: ${test_port}
 ...

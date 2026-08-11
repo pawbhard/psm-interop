@@ -144,9 +144,7 @@ class GammaXdsKubernetesTestCase(xds_k8s_testcase.RegularXdsKubernetesTestCase):
         return self._start_test_client(
             server_target,
             wait_for_active_ads_timeout=datetime.timedelta(minutes=15),
-            # TODO(sergiitk): consider decreasing to 5 minutes, if the majority
-            #     of the wait time spent on waiting ADS.
-            wait_for_server_channel_ready_timeout=datetime.timedelta(minutes=9),
+            wait_for_server_channel_ready_timeout=datetime.timedelta(minutes=15),
             **kwargs,
         )
 

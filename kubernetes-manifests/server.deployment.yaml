@@ -41,6 +41,10 @@ spec:
             ## Extend the number of probes well beyond the duration of the test
             ## driver waiting for the container to start.
             failureThreshold: 1000
+          readinessProbe:
+            grpc:
+              port: ${test_port}
+            periodSeconds: 5
           % endif
           ${prestop_hook.main_lifecycle() if pre_stop_hook else ''}
           args:

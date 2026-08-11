@@ -8,5 +8,8 @@ metadata:
     owner: xds-k8s-interop-test
 spec:                   
   ports:      
-  - port: 8080
+  - name: grpc
+    port: 8080
+    protocol: TCP
+    appProtocol: grpc
     targetPort: 8080
