@@ -170,16 +170,6 @@ class GammaServerRunner(KubernetesServerRunner):
             namespace_name=self.k8s_namespace.name,
         )
 
-        # Create the route.
-        self.route = self._create_gamma_route(
-            route_template,
-            route_name=self.route_name,
-            service_name=self.service_name,
-            namespace_name=self.k8s_namespace.name,
-            test_port=test_port,
-            frontend_service_name=self.frontend_service_name,
-        )
-
         if self.enable_workload_identity:
             if self.workload_identity_iam_policy_binding:
                 # Allow Kubernetes service account to use the GCP service account
@@ -235,6 +225,16 @@ class GammaServerRunner(KubernetesServerRunner):
             self.service_name,
             test_port,
             timeout_sec=datetime.timedelta(minutes=4).total_seconds(),
+        )
+
+        # Create the route after backend NEGs are created and attached.
+        self.route = self._create_gamma_route(
+            route_template,
+            route_name=self.route_name,
+            service_name=self.service_name,
+            namespace_name=self.k8s_namespace.name,
+            test_port=test_port,
+            frontend_service_name=self.frontend_service_name,
         )
 
         # Wait for GKE controller to attach the mesh annotation to the route.
